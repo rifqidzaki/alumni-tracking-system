@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}{% if show_list %}Daftar Alumni{% else %}Input Alumni{% endif %} - Alumni Tracking System{% endblock %}
+{% block page_title %}{% if show_list %}Daftar Alumni{% else %}Tambah Alumni Baru{% endif %}{% endblock %}
+
+{% block content %}
+<div class="row g-4 mt-1">
+    <!-- Input Form -->
+    <div class="{% if show_list %}col-lg-4{% else %}col-lg-6 mx-auto{% endif %}">
+        <div class="card glass-card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="bi bi-person-plus-fill me-2"></i>Form Input Alumni</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('alumni_add') }}" id="alumniForm">
+                    <div class="mb-3">
+                        <label for="nama" class="form-label">Nama Alumni <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <input type="text" class="form-control" id="nama" name="nama" placeholder="Contoh: Ahmad Rizky Pratama" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="prodi" class="form-label">Program Studi <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-book"></i></span>
+                            <select class="form-select" id="prodi" name="prodi" required>
+                                <option value="">-- Pilih Program Studi --</option>
+                                <option value="Informatika">Informatika</option>
+                                <option value="Teknik Informatika">Teknik Informatika</option>
+                                <option value="Sistem Informasi">Sistem Informasi</option>
+                                <option value="Teknik Elektro">Teknik Elektro</option>
+                                <option value="Teknik Mesin">Teknik Mesin</option>
+                                <option value="Ilmu Komunikasi">Ilmu Komunikasi</option>
+                                <option value="Manajemen">Manajemen</option>
+                                <option value="Akuntansi">Akuntansi</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="tahun_lulus" class="form-label">Tahun Lulus <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                            <input type="number" class="form-control" id="tahun_lulus" name="tahun_lulus"
+                                   placeholder="Contoh: 2023" min="2000" max="2030" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="kota" class="form-label">Kota <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                            <input type="text" class="form-control" id="kota" name="kota" placeholder="Contoh: Malang" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email <span class="text-muted">(opsional)</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="alumni@email.com">
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-plus-circle me-2"></i>Tambah Alumni
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alumni List -->
+    {% if show_list %}
+    <div class="col-lg-8">
+        <div class="card glass-card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="card-title mb-0"><i class="bi bi-people-fill me-2"></i>Daftar Alumni ({{ total }})</h5>
+            </div>
+            <div class="card-body">
+                <!-- Search & Filter -->
+                <form method="GET" action="{{ url_for('alumni_list') }}" class="row g-2 mb-3" id="filterForm">
+                    <div class="col-md-4">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" name="search" value="{{ search }}" placeholder="Cari nama, kota, email...">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select form-select-sm" name="prodi" onchange="this.form.submit()">
+                            <option value="">Semua Prodi</option>
+                            {% for p in prodi_list %}
+                            <option value="{{ p }}" {% if prodi_filter == p %}selected{% endif %}>{{ p }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select class="form-select form-select-sm" name="tahun" onchange="this.form.submit()">
+                            <option value="">Semua Tahun</option>
+                            {% for t in tahun_list %}
+                            <option value="{{ t }}" {% if tahun_filter == t|string %}selected{% endif %}>{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-sm btn-outline-primary w-100">
+                            <i class="bi bi-funnel"></i> Filter
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Table -->
+                {% if alumni_list %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nama</th>
+                                <th>Prodi</th>
+                                <th>Tahun</th>
+                                <th>Kota</th>
+                                <th>Status</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in alumni_list %}
+                            <tr>
+                                <td>{{ (current_page - 1) * 10 + loop.index }}</td>
+                                <td>
+                                    <strong>{{ a.nama }}</strong>
+                                    {% if a.email %}<br><small class="text-muted">{{ a.email }}</small>{% endif %}
+                                </td>
+                                <td>{{ a.prodi }}</td>
+                                <td>{{ a.tahun_lulus }}</td>
+                                <td>{{ a.kota }}</td>
+                                <td>
+                                    {% if a.status == 'sudah_dilacak' %}
+                                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Sudah Dilacak</span>
+                                    {% elif a.status == 'perlu_verifikasi' %}
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Perlu Verifikasi</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary"><i class="bi bi-clock"></i> Belum Dilacak</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('query_result', alumni_id=a.id) }}" class="btn btn-outline-info" title="Generate Query">
+                                            <i class="bi bi-search"></i>
+                                        </a>
+                                        <a href="{{ url_for('search_result', alumni_id=a.id) }}" class="btn btn-outline-primary" title="Run Search">
+                                            <i class="bi bi-binoculars"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if total_pages > 1 %}
+                <nav aria-label="Alumni pagination">
+                    <ul class="pagination pagination-sm justify-content-center mb-0">
+                        <li class="page-item {% if current_page <= 1 %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('alumni_list', page=current_page - 1, search=search, prodi=prodi_filter, tahun=tahun_filter) }}">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        {% for p in range(1, total_pages + 1) %}
+                        <li class="page-item {% if p == current_page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('alumni_list', page=p, search=search, prodi=prodi_filter, tahun=tahun_filter) }}">{{ p }}</a>
+                        </li>
+                        {% endfor %}
+                        <li class="page-item {% if current_page >= total_pages %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('alumni_list', page=current_page + 1, search=search, prodi=prodi_filter, tahun=tahun_filter) }}">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                {% endif %}
+
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox display-4"></i>
+                    <p class="mt-3">Tidak ada alumni ditemukan.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
