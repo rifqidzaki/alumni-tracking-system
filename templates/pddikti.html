@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Verifikasi PDDIKTI - {{ alumni.nama }} - Alumni Tracking System{% endblock %}
+{% block page_title %}Verifikasi PDDIKTI{% endblock %}
+
+{% block content %}
+<div class="row mt-2">
+    <div class="col-12">
+
+        <!-- Alumni Info -->
+        <div class="card glass-card mb-4">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <div class="avatar-circle avatar-lg">
+                        {{ alumni.nama[0] | upper }}
+                    </div>
+                    <div>
+                        <h4 class="mb-1">{{ alumni.nama }}</h4>
+                        <p class="text-muted mb-0">
+                            <i class="bi bi-book me-1"></i>{{ alumni.prodi }} &middot;
+                            <i class="bi bi-calendar me-1"></i>{{ alumni.tahun_lulus }} &middot;
+                            <i class="bi bi-geo-alt me-1"></i>{{ alumni.kota }}
+                        </p>
+                    </div>
+                    <div class="ms-auto">
+                        <a href="https://pddikti.kemdiktisaintek.go.id/" target="_blank" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>Buka PDDIKTI
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Verification Result Banner -->
+        <div class="card glass-card mb-4">
+            <div class="card-body text-center py-4">
+                {% if result.confidence == 'Terverifikasi' %}
+                    <i class="bi bi-patch-check-fill display-3 text-success"></i>
+                    <h3 class="mt-3 text-success">Terverifikasi</h3>
+                    <p class="text-muted">Data alumni ditemukan di PDDIKTI sebagai mahasiswa <strong>Universitas Muhammadiyah Malang</strong> dengan program studi yang sesuai.</p>
+                {% elif result.confidence == 'Kemungkinan' %}
+                    <i class="bi bi-patch-question-fill display-3 text-warning"></i>
+                    <h3 class="mt-3 text-warning">Kemungkinan Cocok</h3>
+                    <p class="text-muted">Data alumni ditemukan di PDDIKTI sebagai mahasiswa UMM, namun program studi belum dapat dikonfirmasi secara otomatis.</p>
+                {% else %}
+                    <i class="bi bi-patch-exclamation-fill display-3 text-danger"></i>
+                    <h3 class="mt-3 text-danger">Tidak Ditemukan di PDDIKTI</h3>
+                    <p class="text-muted">Nama alumni tidak ditemukan dalam data Universitas Muhammadiyah Malang pada PDDIKTI. Coba verifikasi secara manual.</p>
+                {% endif %}
+
+                <div class="row justify-content-center mt-3 g-3">
+                    <div class="col-auto">
+                        <span class="badge bg-primary-subtle text-primary-emphasis px-3 py-2">
+                            <i class="bi bi-search me-1"></i>
+                            {{ result.all_results_count }} hasil total di PDDIKTI
+                        </span>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge bg-success-subtle text-success-emphasis px-3 py-2">
+                            <i class="bi bi-building me-1"></i>
+                            {{ result.umm_results_count }} dari UMM
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PDDIKTI Results Table -->
+        {% if result.pddikti_results %}
+        <div class="card glass-card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-table me-2"></i>Hasil Verifikasi dari PDDIKTI (UMM)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Nama di PDDIKTI</th>
+                                <th>NIM</th>
+                                <th>Program Studi</th>
+                                <th>Perguruan Tinggi</th>
+                                <th class="text-center">Detail</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in result.pddikti_results %}
+                            <tr {% if result.best_match and r.id == result.best_match.id %}class="table-success"{% endif %}>
+                                <td>{{ loop.index }}</td>
+                                <td>
+                                    <strong>{{ r.nama }}</strong>
+                                    {% if result.best_match and r.id == result.best_match.id %}
+                                    <br><small class="text-success"><i class="bi bi-check-circle-fill"></i> Best match</small>
+                                    {% endif %}
+                                </td>
+                                <td><code>{{ r.nim or '-' }}</code></td>
+                                <td>{{ r.nama_prodi or '-' }}</td>
+                                <td>
+                                    <span class="badge bg-primary-subtle text-primary-emphasis">
+                                        {{ r.sinkatan_pt or r.nama_pt or '-' }}
+                                    </span>
+                                    <br><small class="text-muted">{{ r.nama_pt }}</small>
+                                </td>
+                                <td class="text-center">
+                                    <a href="https://pddikti.kemdiktisaintek.go.id/detail/mahasiswa/{{ r.id }}"
+                                       target="_blank" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-box-arrow-up-right"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- No UMM results but found in PDDIKTI -->
+        {% if result.found and not result.umm_match %}
+        <div class="card glass-card mb-4 border-warning">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-exclamation-triangle-fill text-warning fs-4"></i>
+                    <div>
+                        <strong>Ditemukan di universitas lain</strong>
+                        <p class="mb-0 text-muted">Ada {{ result.all_results_count }} mahasiswa dengan nama serupa di PDDIKTI, tetapi tidak ada yang terdaftar di Universitas Muhammadiyah Malang. Verifikasi manual diperlukan.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Comparison Card -->
+        <div class="card glass-card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="bi bi-arrow-left-right me-2"></i>Perbandingan Data</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-body-tertiary rounded">
+                            <h6 class="text-muted mb-3"><i class="bi bi-database me-2"></i>Data di Sistem (ATS)</h6>
+                            <table class="table table-sm mb-0">
+                                <tr><td class="text-muted">Nama</td><td><strong>{{ alumni.nama }}</strong></td></tr>
+                                <tr><td class="text-muted">Prodi</td><td>{{ alumni.prodi }}</td></tr>
+                                <tr><td class="text-muted">Tahun Lulus</td><td>{{ alumni.tahun_lulus }}</td></tr>
+                                <tr><td class="text-muted">Kota</td><td>{{ alumni.kota }}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 {% if result.best_match %}bg-success-subtle{% else %}bg-danger-subtle{% endif %} rounded">
+                            <h6 class="text-muted mb-3"><i class="bi bi-cloud-check me-2"></i>Data di PDDIKTI</h6>
+                            {% if result.best_match %}
+                            <table class="table table-sm mb-0">
+                                <tr><td class="text-muted">Nama</td><td><strong>{{ result.best_match.nama }}</strong></td></tr>
+                                <tr><td class="text-muted">NIM</td><td><code>{{ result.best_match.nim or '-' }}</code></td></tr>
+                                <tr><td class="text-muted">Prodi</td><td>{{ result.best_match.nama_prodi or '-' }}</td></tr>
+                                <tr><td class="text-muted">PT</td><td>{{ result.best_match.sinkatan_pt or result.best_match.nama_pt or '-' }}</td></tr>
+                            </table>
+                            {% else %}
+                            <p class="text-muted mb-0"><i class="bi bi-x-circle me-2"></i>Tidak ditemukan di PDDIKTI UMM</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manual Verification Link -->
+        <div class="card glass-card mb-4 border-info">
+            <div class="card-body">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-info-circle-fill text-info fs-3"></i>
+                    <div>
+                        <strong>Verifikasi Manual</strong>
+                        <p class="mb-2 text-muted">Untuk verifikasi lebih lanjut, Anda dapat mencari langsung di website resmi PDDIKTI:</p>
+                        <a href="https://pddikti.kemdiktisaintek.go.id/search?q={{ alumni.nama | urlencode }}"
+                           target="_blank" class="btn btn-info btn-sm">
+                            <i class="bi bi-search me-1"></i>Cari "{{ alumni.nama }}" di PDDIKTI
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back -->
+        <div class="mt-3">
+            <a href="{{ url_for('alumni_list') }}" class="btn btn-outline-secondary me-2">
+                <i class="bi bi-arrow-left me-2"></i>Kembali ke Daftar
+            </a>
+            <a href="{{ url_for('search_result', alumni_id=alumni.id) }}" class="btn btn-outline-primary">
+                <i class="bi bi-binoculars me-2"></i>Jalankan Pencarian
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
