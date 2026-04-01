@@ -7,6 +7,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 import database as db
 import scoring
 import search_simulator
+import pddikti_verifier
 
 app = Flask(__name__)
 app.secret_key = 'alumni-tracking-secret-key-2026'
@@ -158,6 +159,19 @@ def save_evidence(alumni_id):
     db.save_evidence(alumni_id, candidate_id, nama_alumni, instansi, jabatan, sumber, link, confidence_score)
     flash(f'Bukti pelacakan untuk "{alumni["nama"]}" berhasil disimpan!', 'success')
     return redirect(url_for('search_result', alumni_id=alumni_id))
+
+
+# ─── PDDIKTI Verification ───────────────────────────────────
+
+@app.route('/alumni/<int:alumni_id>/pddikti')
+def pddikti_verify(alumni_id):
+    alumni = db.get_alumni_by_id(alumni_id)
+    if not alumni:
+        flash('Alumni tidak ditemukan!', 'danger')
+        return redirect(url_for('alumni_list'))
+
+    result = pddikti_verifier.verify_alumni(dict(alumni))
+    return render_template('pddikti.html', alumni=alumni, result=result)
 
 
 # ─── Tracking Evidence ──────────────────────────────────────
