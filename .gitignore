@@ -6,3 +6,12 @@ env/
 .env
 .DS_Store
 *.log
+database.db
+seed_data.py
+seed_and_verify.py
+seed_more.py
+seed_final.py
+test_routes.py
+test_pddikti.py
+run_tracking.py
+pddikti_umm_students.json
