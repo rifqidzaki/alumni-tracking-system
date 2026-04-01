@@ -8,6 +8,7 @@ import database as db
 import scoring
 import search_simulator
 import pddikti_verifier
+import startup_seed
 
 app = Flask(__name__)
 app.secret_key = 'alumni-tracking-secret-key-2026'
@@ -16,6 +17,8 @@ app.secret_key = 'alumni-tracking-secret-key-2026'
 # ─── Initialize DB on startup ────────────────────────────────
 with app.app_context():
     db.init_db()
+    startup_seed.seed_if_empty()
+
 
 
 # ─── Dashboard ────────────────────────────────────────────────
