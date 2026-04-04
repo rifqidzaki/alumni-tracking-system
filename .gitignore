@@ -6,12 +6,7 @@ env/
 .env
 .DS_Store
 *.log
-database.db
-seed_data.py
-seed_and_verify.py
-seed_more.py
-seed_final.py
-test_routes.py
-test_pddikti.py
-run_tracking.py
+
+# database.db (Kini diizinkan untuk update data)
+# seed/tracking scripts (Kini diizinkan)
 pddikti_umm_students.json
