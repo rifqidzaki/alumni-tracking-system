@@ -79,18 +79,26 @@
     <div class="col-lg-8">
         <div class="card glass-card">
             <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-                <h5 class="card-title mb-0"><i class="bi bi-people-fill me-2"></i>Daftar Alumni ({{ total }})</h5>
+                <h5 class="card-title mb-0"><i class="bi bi-people-fill me-2"></i>Daftar Alumni ({{ "{:,}".format(total) }})</h5>
             </div>
             <div class="card-body">
                 <!-- Search & Filter -->
                 <form method="GET" action="{{ url_for('alumni_list') }}" class="row g-2 mb-3" id="filterForm">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="input-group input-group-sm">
                             <span class="input-group-text"><i class="bi bi-search"></i></span>
-                            <input type="text" class="form-control" name="search" value="{{ search }}" placeholder="Cari nama, kota, email...">
+                            <input type="text" class="form-control" name="search" value="{{ search }}" placeholder="Cari nama, NIM...">
                         </div>
                     </div>
                     <div class="col-md-3">
+                        <select class="form-select form-select-sm" name="fakultas" onchange="this.form.submit()">
+                            <option value="">Semua Fakultas</option>
+                            {% for f in fakultas_list %}
+                            <option value="{{ f }}" {% if fakultas_filter == f %}selected{% endif %}>{{ f }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
                         <select class="form-select form-select-sm" name="prodi" onchange="this.form.submit()">
                             <option value="">Semua Prodi</option>
                             {% for p in prodi_list %}
@@ -98,7 +106,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <select class="form-select form-select-sm" name="tahun" onchange="this.form.submit()">
                             <option value="">Semua Tahun</option>
                             {% for t in tahun_list %}
@@ -116,14 +124,15 @@
                 <!-- Table -->
                 {% if alumni_list %}
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle">
+                    <table class="table table-hover align-middle table-sm">
                         <thead>
                             <tr>
                                 <th>#</th>
                                 <th>Nama</th>
+                                <th>NIM</th>
+                                <th>Fakultas</th>
                                 <th>Prodi</th>
                                 <th>Tahun</th>
-                                <th>Kota</th>
                                 <th>Status</th>
                                 <th class="text-center">Aksi</th>
                             </tr>
@@ -131,32 +140,32 @@
                         <tbody>
                             {% for a in alumni_list %}
                             <tr>
-                                <td>{{ (current_page - 1) * 10 + loop.index }}</td>
+                                <td>{{ (current_page - 1) * 25 + loop.index }}</td>
                                 <td>
-                                    <strong>{{ a.nama }}</strong>
-                                    {% if a.email %}<br><small class="text-muted">{{ a.email }}</small>{% endif %}
+                                    <a href="{{ url_for('alumni_detail', alumni_id=a.id) }}" class="text-decoration-none fw-semibold">{{ a.nama }}</a>
                                 </td>
-                                <td>{{ a.prodi }}</td>
+                                <td><small class="text-muted">{{ a.nim or '-' }}</small></td>
+                                <td><small>{{ a.fakultas or '-' }}</small></td>
+                                <td><small>{{ a.prodi }}</small></td>
                                 <td>{{ a.tahun_lulus }}</td>
-                                <td>{{ a.kota }}</td>
                                 <td>
                                     {% if a.status == 'sudah_dilacak' %}
-                                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Sudah Dilacak</span>
+                                    <span class="badge bg-success"><i class="bi bi-check-circle"></i></span>
                                     {% elif a.status == 'perlu_verifikasi' %}
-                                    <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Perlu Verifikasi</span>
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i></span>
                                     {% else %}
-                                    <span class="badge bg-secondary"><i class="bi bi-clock"></i> Belum Dilacak</span>
+                                    <span class="badge bg-secondary"><i class="bi bi-clock"></i></span>
                                     {% endif %}
                                 </td>
                                 <td class="text-center">
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{{ url_for('query_result', alumni_id=a.id) }}" class="btn btn-outline-info" title="Generate Query">
-                                            <i class="bi bi-search"></i>
+                                        <a href="{{ url_for('alumni_detail', alumni_id=a.id) }}" class="btn btn-outline-dark" title="Detail">
+                                            <i class="bi bi-eye"></i>
                                         </a>
-                                        <a href="{{ url_for('search_result', alumni_id=a.id) }}" class="btn btn-outline-primary" title="Run Search">
+                                        <a href="{{ url_for('search_result', alumni_id=a.id) }}" class="btn btn-outline-primary" title="Tracking">
                                             <i class="bi bi-binoculars"></i>
                                         </a>
-                                        <a href="{{ url_for('pddikti_verify', alumni_id=a.id) }}" class="btn btn-outline-success" title="Verifikasi PDDIKTI">
+                                        <a href="{{ url_for('pddikti_verify', alumni_id=a.id) }}" class="btn btn-outline-success" title="PDDIKTI">
                                             <i class="bi bi-patch-check"></i>
                                         </a>
                                     </div>
@@ -172,17 +181,27 @@
                 <nav aria-label="Alumni pagination">
                     <ul class="pagination pagination-sm justify-content-center mb-0">
                         <li class="page-item {% if current_page <= 1 %}disabled{% endif %}">
-                            <a class="page-link" href="{{ url_for('alumni_list', page=current_page - 1, search=search, prodi=prodi_filter, tahun=tahun_filter) }}">
+                            <a class="page-link" href="{{ url_for('alumni_list', page=current_page - 1, search=search, prodi=prodi_filter, tahun=tahun_filter, fakultas=fakultas_filter) }}">
                                 <i class="bi bi-chevron-left"></i>
                             </a>
                         </li>
-                        {% for p in range(1, total_pages + 1) %}
+                        {% set start_page = [1, current_page - 3] | max %}
+                        {% set end_page = [total_pages, current_page + 3] | min %}
+                        {% if start_page > 1 %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('alumni_list', page=1, search=search, prodi=prodi_filter, tahun=tahun_filter, fakultas=fakultas_filter) }}">1</a></li>
+                        {% if start_page > 2 %}<li class="page-item disabled"><span class="page-link">...</span></li>{% endif %}
+                        {% endif %}
+                        {% for p in range(start_page, end_page + 1) %}
                         <li class="page-item {% if p == current_page %}active{% endif %}">
-                            <a class="page-link" href="{{ url_for('alumni_list', page=p, search=search, prodi=prodi_filter, tahun=tahun_filter) }}">{{ p }}</a>
+                            <a class="page-link" href="{{ url_for('alumni_list', page=p, search=search, prodi=prodi_filter, tahun=tahun_filter, fakultas=fakultas_filter) }}">{{ p }}</a>
                         </li>
                         {% endfor %}
+                        {% if end_page < total_pages %}
+                        {% if end_page < total_pages - 1 %}<li class="page-item disabled"><span class="page-link">...</span></li>{% endif %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for('alumni_list', page=total_pages, search=search, prodi=prodi_filter, tahun=tahun_filter, fakultas=fakultas_filter) }}">{{ total_pages }}</a></li>
+                        {% endif %}
                         <li class="page-item {% if current_page >= total_pages %}disabled{% endif %}">
-                            <a class="page-link" href="{{ url_for('alumni_list', page=current_page + 1, search=search, prodi=prodi_filter, tahun=tahun_filter) }}">
+                            <a class="page-link" href="{{ url_for('alumni_list', page=current_page + 1, search=search, prodi=prodi_filter, tahun=tahun_filter, fakultas=fakultas_filter) }}">
                                 <i class="bi bi-chevron-right"></i>
                             </a>
                         </li>

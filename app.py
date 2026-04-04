@@ -1,14 +1,14 @@
 """
 Alumni Tracking System - Main Flask Application
-A web-based system for tracking university alumni through public sources.
+Extended with: authentication, Excel import, alumni detail/contact editing.
 """
 
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session
 import database as db
 import scoring
 import search_simulator
 import pddikti_verifier
-import startup_seed
 
 app = Flask(__name__)
 app.secret_key = 'alumni-tracking-secret-key-2026'
@@ -17,19 +17,61 @@ app.secret_key = 'alumni-tracking-secret-key-2026'
 # ─── Initialize DB on startup ────────────────────────────────
 with app.app_context():
     db.init_db()
-    startup_seed.seed_if_empty()
 
+
+# ─── Auth Decorator ──────────────────────────────────────────
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated
+
+
+# ─── Auth Routes ──────────────────────────────────────────────
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+
+        user = db.verify_user(username, password)
+        if user:
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['nama_lengkap'] = user['nama_lengkap'] or user['username']
+            flash('Login berhasil!', 'success')
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Username atau password salah!', 'danger')
+
+    return render_template('login.html')
+
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    flash('Anda telah keluar.', 'info')
+    return redirect(url_for('login'))
 
 
 # ─── Dashboard ────────────────────────────────────────────────
 
 @app.route('/')
+@login_required
 def dashboard():
     stats = db.get_dashboard_stats()
     return render_template('dashboard.html', stats=stats)
 
 
 @app.route('/api/dashboard-stats')
+@login_required
 def api_dashboard_stats():
     stats = db.get_dashboard_stats()
     return jsonify(stats)
@@ -38,6 +80,7 @@ def api_dashboard_stats():
 # ─── Alumni CRUD ──────────────────────────────────────────────
 
 @app.route('/alumni/add', methods=['GET', 'POST'])
+@login_required
 def alumni_add():
     if request.method == 'POST':
         nama = request.form.get('nama', '').strip()
@@ -64,21 +107,26 @@ def alumni_add():
 
 
 @app.route('/alumni/list')
+@login_required
 def alumni_list():
     search = request.args.get('search', '').strip()
     prodi_filter = request.args.get('prodi', '').strip()
     tahun_filter = request.args.get('tahun', '').strip()
+    fakultas_filter = request.args.get('fakultas', '').strip()
     page = request.args.get('page', 1, type=int)
 
     alumni_data, total, total_pages = db.get_all_alumni(
         search=search or None,
         prodi_filter=prodi_filter or None,
         tahun_filter=tahun_filter or None,
-        page=page
+        fakultas_filter=fakultas_filter or None,
+        page=page,
+        per_page=25
     )
 
     prodi_list = db.get_all_prodi()
     tahun_list = db.get_all_tahun()
+    fakultas_list = db.get_all_fakultas()
 
     return render_template('alumni_form.html',
                            alumni_list=alumni_data,
@@ -88,14 +136,80 @@ def alumni_list():
                            search=search,
                            prodi_filter=prodi_filter,
                            tahun_filter=tahun_filter,
+                           fakultas_filter=fakultas_filter,
                            prodi_list=prodi_list,
                            tahun_list=tahun_list,
+                           fakultas_list=fakultas_list,
                            show_list=True)
+
+
+# ─── Alumni Detail & Contact Edit ────────────────────────────
+
+@app.route('/alumni/<int:alumni_id>/detail')
+@login_required
+def alumni_detail(alumni_id):
+    alumni = db.get_alumni_by_id(alumni_id)
+    if not alumni:
+        flash('Alumni tidak ditemukan!', 'danger')
+        return redirect(url_for('alumni_list'))
+    return render_template('alumni_detail.html', alumni=alumni)
+
+
+@app.route('/alumni/<int:alumni_id>/update-contact', methods=['POST'])
+@login_required
+def alumni_update_contact(alumni_id):
+    alumni = db.get_alumni_by_id(alumni_id)
+    if not alumni:
+        flash('Alumni tidak ditemukan!', 'danger')
+        return redirect(url_for('alumni_list'))
+
+    data = {
+        'email': request.form.get('email', '').strip() or None,
+        'no_hp': request.form.get('no_hp', '').strip() or None,
+        'linkedin': request.form.get('linkedin', '').strip() or None,
+        'instagram': request.form.get('instagram', '').strip() or None,
+        'facebook': request.form.get('facebook', '').strip() or None,
+        'tiktok': request.form.get('tiktok', '').strip() or None,
+        'tempat_bekerja': request.form.get('tempat_bekerja', '').strip() or None,
+        'alamat_bekerja': request.form.get('alamat_bekerja', '').strip() or None,
+        'posisi': request.form.get('posisi', '').strip() or None,
+        'jenis_pekerjaan': request.form.get('jenis_pekerjaan', '').strip() or None,
+        'sosmed_perusahaan': request.form.get('sosmed_perusahaan', '').strip() or None,
+    }
+
+    db.update_alumni_contact(alumni_id, data)
+    flash(f'Data kontak "{alumni["nama"]}" berhasil diperbarui!', 'success')
+    return redirect(url_for('alumni_detail', alumni_id=alumni_id))
+
+
+# ─── Excel Import ────────────────────────────────────────────
+
+@app.route('/import-excel')
+@login_required
+def import_excel_page():
+    stats = db.get_dashboard_stats()
+    return render_template('import_excel.html', stats=stats)
+
+
+@app.route('/import-excel/run', methods=['POST'])
+@login_required
+def import_excel_run():
+    import excel_importer
+    import os
+    filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'Alumni 2000-2025.xlsx')
+    if not os.path.exists(filepath):
+        flash('File Excel tidak ditemukan!', 'danger')
+        return redirect(url_for('import_excel_page'))
+
+    imported, skipped, errors = excel_importer.import_excel(filepath)
+    flash(f'Import selesai! {imported} data diimpor, {skipped} dilewati, {errors} error.', 'success')
+    return redirect(url_for('alumni_list'))
 
 
 # ─── Generate Query ──────────────────────────────────────────
 
 @app.route('/alumni/<int:alumni_id>/query')
+@login_required
 def query_result(alumni_id):
     alumni = db.get_alumni_by_id(alumni_id)
     if not alumni:
@@ -109,6 +223,7 @@ def query_result(alumni_id):
 # ─── Search Results & Disambiguation ─────────────────────────
 
 @app.route('/alumni/<int:alumni_id>/search')
+@login_required
 def search_result(alumni_id):
     alumni = db.get_alumni_by_id(alumni_id)
     if not alumni:
@@ -116,27 +231,16 @@ def search_result(alumni_id):
         return redirect(url_for('alumni_list'))
 
     alumni_dict = dict(alumni)
-
-    # Simulate search
     candidates = search_simulator.simulate_search(alumni_dict)
 
-    # Calculate confidence scores
     for c in candidates:
         c['confidence_score'] = scoring.calculate_confidence(alumni_dict, c)
-
-    # Cross-validate
     candidates = scoring.cross_validate(candidates)
-
-    # Classify
     for c in candidates:
         c['status'] = scoring.classify(c['confidence_score'])
         c['status_label'] = scoring.classify_label(c['status'])
         c['status_badge'] = scoring.classify_badge(c['status'])
-
-    # Sort by score desc
     candidates.sort(key=lambda x: x['confidence_score'], reverse=True)
-
-    # Save candidates to database
     db.save_candidates(alumni_id, candidates)
 
     return render_template('search_result.html', alumni=alumni, candidates=candidates)
@@ -145,6 +249,7 @@ def search_result(alumni_id):
 # ─── Save Evidence ───────────────────────────────────────────
 
 @app.route('/alumni/<int:alumni_id>/save-evidence', methods=['POST'])
+@login_required
 def save_evidence(alumni_id):
     alumni = db.get_alumni_by_id(alumni_id)
     if not alumni:
@@ -167,6 +272,7 @@ def save_evidence(alumni_id):
 # ─── PDDIKTI Verification ───────────────────────────────────
 
 @app.route('/alumni/<int:alumni_id>/pddikti')
+@login_required
 def pddikti_verify(alumni_id):
     alumni = db.get_alumni_by_id(alumni_id)
     if not alumni:
@@ -180,6 +286,7 @@ def pddikti_verify(alumni_id):
 # ─── Tracking Evidence ──────────────────────────────────────
 
 @app.route('/evidence')
+@login_required
 def evidence():
     page = request.args.get('page', 1, type=int)
     evidence_list, total, total_pages = db.get_all_evidence(page=page)

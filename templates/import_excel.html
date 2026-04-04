@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Import Excel - Alumni Tracking System{% endblock %}
+{% block page_title %}Import Data Excel{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card glass-card border-0">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <div class="mb-3" style="width:80px;height:80px;border-radius:20px;background:linear-gradient(135deg,#10b981,#059669);display:inline-flex;align-items:center;justify-content:center;">
+                        <i class="bi bi-file-earmark-excel" style="font-size:36px;color:#fff;"></i>
+                    </div>
+                    <h4 class="fw-bold">Import Data Alumni dari Excel</h4>
+                    <p class="text-muted">Import data dari file <code>Alumni 2000-2025.xlsx</code></p>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Format kolom Excel:</strong> Nama Lulusan, NIM, Tahun Masuk, Tanggal Lulus, Fakultas, Program Studi
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3 bg-primary-subtle text-center">
+                            <h3 class="fw-bold text-primary mb-0">{{ stats.total }}</h3>
+                            <small class="text-muted">Alumni saat ini</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3 bg-success-subtle text-center">
+                            <h3 class="fw-bold text-success mb-0">{{ stats.sudah_dilacak }}</h3>
+                            <small class="text-muted">Sudah dilacak</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 rounded-3 bg-warning-subtle text-center">
+                            <h3 class="fw-bold text-warning mb-0">142.293</h3>
+                            <small class="text-muted">Data dalam Excel</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Perhatian:</strong> Import 142K+ data memerlukan waktu beberapa menit. Jangan tutup halaman selama proses berlangsung.
+                </div>
+
+                <form method="POST" action="{{ url_for('import_excel_run') }}" id="importForm">
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-success btn-lg" id="importBtn" onclick="startImport()">
+                            <i class="bi bi-cloud-arrow-up me-2"></i>
+                            Mulai Import Data
+                        </button>
+                    </div>
+                </form>
+
+                <div id="progressArea" class="mt-4 d-none">
+                    <div class="progress" style="height:24px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width:100%">
+                            Mengimpor data...
+                        </div>
+                    </div>
+                    <p class="text-muted text-center mt-2 small">Harap tunggu, jangan tutup halaman ini.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function startImport() {
+    document.getElementById('importBtn').disabled = true;
+    document.getElementById('importBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Mengimpor...';
+    document.getElementById('progressArea').classList.remove('d-none');
+}
+</script>
+{% endblock %}

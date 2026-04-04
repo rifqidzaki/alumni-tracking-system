@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Detail Alumni - {{ alumni.nama }} - Alumni Tracking System{% endblock %}
+{% block page_title %}Detail Alumni{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Left: Alumni Info Card -->
+    <div class="col-lg-4">
+        <div class="card glass-card border-0 mb-4">
+            <div class="card-body text-center p-4">
+                <div class="avatar-circle mx-auto mb-3" style="width:80px;height:80px;font-size:2rem;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;">
+                    {{ alumni.nama[0] }}
+                </div>
+                <h5 class="fw-bold mb-1">{{ alumni.nama }}</h5>
+                <p class="text-muted small mb-2">
+                    {% if alumni.nim %}<span class="badge bg-secondary-subtle text-secondary">NIM: {{ alumni.nim }}</span>{% endif %}
+                </p>
+                <div class="text-muted small">
+                    <i class="bi bi-book me-1"></i> {{ alumni.prodi }}<br>
+                    {% if alumni.fakultas %}<i class="bi bi-building me-1"></i> {{ alumni.fakultas }}<br>{% endif %}
+                    <i class="bi bi-calendar me-1"></i> Lulus {{ alumni.tahun_lulus }}<br>
+                    <i class="bi bi-geo-alt me-1"></i> {{ alumni.kota }}
+                </div>
+
+                <hr class="my-3">
+
+                <!-- Status Badge -->
+                <div class="mb-3">
+                    {% if alumni.status == 'sudah_dilacak' %}
+                        <span class="badge bg-success-subtle text-success px-3 py-2"><i class="bi bi-check-circle me-1"></i> Sudah Dilacak</span>
+                    {% elif alumni.status == 'perlu_verifikasi' %}
+                        <span class="badge bg-warning-subtle text-warning px-3 py-2"><i class="bi bi-exclamation-circle me-1"></i> Perlu Verifikasi</span>
+                    {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary px-3 py-2"><i class="bi bi-clock me-1"></i> Belum Dilacak</span>
+                    {% endif %}
+                </div>
+
+                <!-- Quick Action Buttons -->
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('search_result', alumni_id=alumni.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-binoculars me-1"></i> Run Tracking
+                    </a>
+                    <a href="{{ url_for('pddikti_verify', alumni_id=alumni.id) }}" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-patch-check me-1"></i> Verifikasi PDDIKTI
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: Data Forms -->
+    <div class="col-lg-8">
+        <form method="POST" action="{{ url_for('alumni_update_contact', alumni_id=alumni.id) }}">
+            <!-- Sosial Media Section -->
+            <div class="card glass-card border-0 mb-4">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-share text-primary me-2"></i>Sosial Media</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold"><i class="bi bi-linkedin text-primary me-1"></i> LinkedIn</label>
+                            <input type="url" class="form-control form-control-sm" name="linkedin"
+                                   value="{{ alumni.linkedin or '' }}" placeholder="https://linkedin.com/in/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold"><i class="bi bi-instagram text-danger me-1"></i> Instagram</label>
+                            <input type="text" class="form-control form-control-sm" name="instagram"
+                                   value="{{ alumni.instagram or '' }}" placeholder="@username">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold"><i class="bi bi-facebook text-primary me-1"></i> Facebook</label>
+                            <input type="url" class="form-control form-control-sm" name="facebook"
+                                   value="{{ alumni.facebook or '' }}" placeholder="https://facebook.com/...">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold"><i class="bi bi-tiktok me-1"></i> TikTok</label>
+                            <input type="text" class="form-control form-control-sm" name="tiktok"
+                                   value="{{ alumni.tiktok or '' }}" placeholder="@username">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kontak Section -->
+            <div class="card glass-card border-0 mb-4">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-telephone text-success me-2"></i>Kontak</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold"><i class="bi bi-envelope me-1"></i> Email</label>
+                            <input type="email" class="form-control form-control-sm" name="email"
+                                   value="{{ alumni.email or '' }}" placeholder="alumni@email.com">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold"><i class="bi bi-phone me-1"></i> No HP</label>
+                            <input type="tel" class="form-control form-control-sm" name="no_hp"
+                                   value="{{ alumni.no_hp or '' }}" placeholder="08xxxxxxxxxx">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pekerjaan Section -->
+            <div class="card glass-card border-0 mb-4">
+                <div class="card-header bg-transparent border-0 pt-4 px-4">
+                    <h6 class="mb-0 fw-bold"><i class="bi bi-briefcase text-warning me-2"></i>Pekerjaan</h6>
+                </div>
+                <div class="card-body px-4 pb-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Tempat Bekerja</label>
+                            <input type="text" class="form-control form-control-sm" name="tempat_bekerja"
+                                   value="{{ alumni.tempat_bekerja or '' }}" placeholder="Nama perusahaan/instansi">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Posisi / Jabatan</label>
+                            <input type="text" class="form-control form-control-sm" name="posisi"
+                                   value="{{ alumni.posisi or '' }}" placeholder="Software Engineer, dll">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Alamat Tempat Bekerja</label>
+                            <input type="text" class="form-control form-control-sm" name="alamat_bekerja"
+                                   value="{{ alumni.alamat_bekerja or '' }}" placeholder="Alamat kantor">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold">Jenis Pekerjaan</label>
+                            <select class="form-select form-select-sm" name="jenis_pekerjaan">
+                                <option value="">-- Pilih --</option>
+                                <option value="PNS" {{ 'selected' if alumni.jenis_pekerjaan == 'PNS' }}>PNS</option>
+                                <option value="Swasta" {{ 'selected' if alumni.jenis_pekerjaan == 'Swasta' }}>Swasta</option>
+                                <option value="Wirausaha" {{ 'selected' if alumni.jenis_pekerjaan == 'Wirausaha' }}>Wirausaha</option>
+                                <option value="BUMN" {{ 'selected' if alumni.jenis_pekerjaan == 'BUMN' }}>BUMN</option>
+                                <option value="TNI/Polri" {{ 'selected' if alumni.jenis_pekerjaan == 'TNI/Polri' }}>TNI/Polri</option>
+                                <option value="Lainnya" {{ 'selected' if alumni.jenis_pekerjaan == 'Lainnya' }}>Lainnya</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold"><i class="bi bi-globe me-1"></i> Sosial Media Perusahaan</label>
+                            <input type="text" class="form-control form-control-sm" name="sosmed_perusahaan"
+                                   value="{{ alumni.sosmed_perusahaan or '' }}" placeholder="URL website/sosmed perusahaan">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Save Button -->
+            <div class="text-end mb-4">
+                <a href="{{ url_for('alumni_list') }}" class="btn btn-outline-secondary me-2">
+                    <i class="bi bi-arrow-left me-1"></i> Kembali
+                </a>
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-check-lg me-1"></i> Simpan Data
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
